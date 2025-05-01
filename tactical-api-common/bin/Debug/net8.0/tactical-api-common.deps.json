@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "tactical-api-common/1.0.0": {
+        "runtime": {
+          "tactical-api-common.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "tactical-api-common/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

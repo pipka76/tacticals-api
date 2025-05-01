@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "cjKuMg1chv0GMzYVl6uqQGGtLf26HXiAoF0iy+8k/F0=",
+  "Source": "tacticals-api-server",
+  "BasePath": "_content/tacticals-api-server",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

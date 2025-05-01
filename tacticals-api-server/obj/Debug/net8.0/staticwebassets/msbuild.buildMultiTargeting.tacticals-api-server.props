@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../build/tacticals-api-server.props" />
+</Project>

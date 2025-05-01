@@ -1,0 +1,11 @@
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/bin/Debug/net8.0/tactical-api-common.deps.json
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/bin/Debug/net8.0/tactical-api-common.dll
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/bin/Debug/net8.0/tactical-api-common.pdb
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/obj/Debug/net8.0/tactical-api-common.GeneratedMSBuildEditorConfig.editorconfig
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/obj/Debug/net8.0/tactical-api-common.AssemblyInfoInputs.cache
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/obj/Debug/net8.0/tactical-api-common.AssemblyInfo.cs
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/obj/Debug/net8.0/tactical-api-common.csproj.CoreCompileInputs.cache
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/obj/Debug/net8.0/tactical-api-common.dll
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/obj/Debug/net8.0/refint/tactical-api-common.dll
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/obj/Debug/net8.0/tactical-api-common.pdb
+/Users/jholan/Projects/Godot/tacticals-api-server/tactical-api-common/obj/Debug/net8.0/ref/tactical-api-common.dll
