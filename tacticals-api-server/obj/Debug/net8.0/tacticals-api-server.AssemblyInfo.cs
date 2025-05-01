@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("tacticals-api-server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d6977bca2146033a3d67dc4cbd47eb46c7fced8b")]
 [assembly: System.Reflection.AssemblyProductAttribute("tacticals-api-server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("tacticals-api-server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
