@@ -85,7 +85,7 @@ public class BattleController : Controller
 
     [HttpPut]
     [Route("finish")]
-    public IActionResult FinishBattle(Guid id, int peerId)
+    public IActionResult FinishBattle([FromQuery] Guid id, [FromQuery] int peerId, [FromBody] string statistics)
     {
         _logger.LogDebug($"FinishBattle: {id} {peerId}");
 
