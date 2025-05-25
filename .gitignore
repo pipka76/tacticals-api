@@ -3,3 +3,4 @@ tactical-api-common/obj/
 tacticals-api-server/obj/
 tacticals-api-server/bin/
 /tacticals-api-server/tacticals-api-server.csproj.user
+tactical-api-server/.idea/
