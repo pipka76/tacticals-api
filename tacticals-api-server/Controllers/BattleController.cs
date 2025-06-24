@@ -16,7 +16,7 @@ public class BattleController : Controller
     }
     
     [HttpPut]
-    [Route("register")]
+    [Route("battle/register")]
     public IActionResult Register(string name)
     {
         _logger.LogDebug($"RegisterNewBattle: {name}");
@@ -34,7 +34,7 @@ public class BattleController : Controller
     }
 
     [HttpPut]
-    [Route("authorize")]
+    [Route("battle/authorize")]
     public IActionResult Authorize(Guid id, int ownerPeer)
     {
         _logger.LogDebug($"AuthorizeBattle: {id} {ownerPeer}");
@@ -46,7 +46,7 @@ public class BattleController : Controller
     }
     
     [HttpPut]
-    [Route("join")]
+    [Route("battle/join")]
     public IActionResult Join(Guid id, int peerId)
     {
         _logger.LogDebug($"JoinBattle: {id} {peerId}");
@@ -58,7 +58,7 @@ public class BattleController : Controller
     }
 
     [HttpPut]
-    [Route("playerready")]
+    [Route("battle/playerready")]
     public IActionResult PlayerReady(Guid id, int peerId, string name, bool isReady)
     {
         _logger.LogDebug($"PlayerReady: {id} {peerId} {name} {isReady}");
@@ -72,7 +72,7 @@ public class BattleController : Controller
     }
     
     [HttpPut]
-    [Route("start")]
+    [Route("battle/start")]
     public IActionResult StartBattle(Guid id, int peerId)
     {
         _logger.LogDebug($"StartBattle: {id} {peerId}");
@@ -84,7 +84,7 @@ public class BattleController : Controller
     }
 
     [HttpPut]
-    [Route("finish")]
+    [Route("battle/finish")]
     public IActionResult FinishBattle([FromQuery] Guid id, [FromQuery] int peerId, [FromBody] string statistics)
     {
         _logger.LogDebug($"FinishBattle: {id} {peerId}");
@@ -96,7 +96,7 @@ public class BattleController : Controller
     }
     
     [HttpGet]
-    [Route("get")]
+    [Route("battle/get")]
     public IActionResult GetBattle(Guid id)
     {
         _logger.LogDebug($"GetBattle");
@@ -112,7 +112,7 @@ public class BattleController : Controller
     }
 
     [HttpGet]
-    [Route("list")]
+    [Route("battle/list")]
     public IActionResult ListBattles()
     {
         _logger.LogDebug($"ListBattles");
