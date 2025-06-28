@@ -19,11 +19,11 @@ var dbContext = scope.ServiceProvider.GetRequiredService<ApiDatabaseContext>();
 dbContext.Database.Migrate();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 
 //app.UseHttpsRedirection();
 app.MapControllers();

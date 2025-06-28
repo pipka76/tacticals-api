@@ -19,16 +19,15 @@ public class ProfileController : ControllerBase
 {
     private ILogger<ProfileController> _logger;
     private ApiDatabaseContext _db;
-    private string _encryptionKey;
+    private static string _encryptionKey = GetRandomKey();
 
     public ProfileController(ILogger<ProfileController> logger,  ApiDatabaseContext db)
     {
         _logger = logger;
         _db = db;
-        _encryptionKey = GetRandomKey();
     }
 
-    private string GetRandomKey()
+    private static string GetRandomKey()
     {
         // Generate a random 32-character encryption key
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -86,8 +85,9 @@ public class ProfileController : ControllerBase
             // Optionally, you could check dateUtc for expiration here
             return true;
         }
-        catch
+        catch(Exception ex)
         {
+            Console.WriteLine("ValidateToken: " + ex.Message);
             return false;
         }
     }

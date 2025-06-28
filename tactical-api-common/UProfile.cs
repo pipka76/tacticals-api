@@ -7,9 +7,11 @@ public class UProfile
 
     public UProfile(string name, string email, string password)
     {
+        Id = Guid.Empty;
         Name = name;
         Email = email;
         PasswordHash = password;
+        ArmySaves = new Dictionary<string, ArmySetupSave>();
     }
     
     public Guid Id { get; set; }
