@@ -10,7 +10,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMvc();
 builder.Services.AddDbContext<ApiDatabaseContext>(options =>
-    options.UseSqlite("Data Source=tacticals.db"));
+    options.UseSqlite(builder.Configuration.GetConnectionString("Tacticals") ?? "Data Source=tacticals.db"));
 builder.Services.Configure<GameServerOptions>(builder.Configuration.GetSection(GameServerOptions.Section));
 builder.Services.AddSingleton<GameServerManager>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<GameServerManager>());

@@ -90,6 +90,45 @@ public class GameServerManager : IHostedService
         return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(instance.Token), Encoding.UTF8.GetBytes(token));
     }
 
+    /// <summary>
+    /// One-time ticket a player presents to the game server when connecting; null if the battle
+    /// has no running server.
+    /// </summary>
+    public string? IssueTicket(Guid battleId, Guid profileId, string name)
+    {
+        var ticket = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+        var expires = DateTime.UtcNow.AddSeconds(_options.TicketLifetimeSeconds);
+
+        lock (_lock)
+        {
+            if (!_instances.TryGetValue(battleId, out var instance))
+                return null;
+
+            // Drop expired ones so a player re-requesting endpoints doesn't grow the table forever.
+            foreach (var stale in instance.Tickets.Where(t => t.Value.ExpiresUtc < DateTime.UtcNow).Select(t => t.Key).ToList())
+                instance.Tickets.Remove(stale);
+
+            instance.Tickets[ticket] = (new TicketIdentity(profileId, name), expires);
+        }
+
+        return ticket;
+    }
+
+    /// <summary>Consumes a ticket; null if unknown, already used, or expired.</summary>
+    public TicketIdentity? RedeemTicket(Guid battleId, string ticket)
+    {
+        lock (_lock)
+        {
+            if (!_instances.TryGetValue(battleId, out var instance)
+                || !instance.Tickets.Remove(ticket, out var entry)
+                || entry.ExpiresUtc < DateTime.UtcNow)
+                return null;
+
+            return entry.Identity;
+        }
+    }
+
     public IList<GameInstance> ListInstances()
     {
         lock (_lock)

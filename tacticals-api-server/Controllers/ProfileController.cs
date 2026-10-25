@@ -7,10 +7,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Security.Cryptography;
-using System.Globalization;
-using System.Runtime.Intrinsics.Arm;
 using System.Text.Json;
-using Aes = System.Security.Cryptography.Aes;
+using tacticals_api_server.Domain.Auth;
 
 namespace tacticals_api_server.Controllers;
 
@@ -19,7 +17,6 @@ public class ProfileController : ControllerBase
 {
     private ILogger<ProfileController> _logger;
     private ApiDatabaseContext _db;
-    private static string _encryptionKey = GetRandomKey();
 
     public ProfileController(ILogger<ProfileController> logger,  ApiDatabaseContext db)
     {
@@ -27,121 +24,7 @@ public class ProfileController : ControllerBase
         _db = db;
     }
 
-    private static string GetRandomKey()
-    {
-        // Generate a random 32-character encryption key
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        var keyChars = new char[32];
-        using (var rng = RandomNumberGenerator.Create())
-        {
-            var byteBuffer = new byte[4];
-            for (int i = 0; i < keyChars.Length; i++)
-            {
-                rng.GetBytes(byteBuffer);
-                uint randomNum = BitConverter.ToUInt32(byteBuffer, 0);
-                keyChars[i] = chars[(int)(randomNum % (uint)chars.Length)];
-            }
-        }
-        return new string(keyChars);
-    }
-
-    private bool ValidateToken(string token, out Guid profileId)
-    {
-        profileId = Guid.Empty;
-        try
-        {
-            // Replace with your actual 32-byte key (UTF8)
-            var key = Encoding.UTF8.GetBytes(_encryptionKey);
-            var iv = new byte[16]; // Initialization vector of zeros
-
-            var cipherText = Convert.FromBase64String(token);
-            string plaintext;
-            using (var aes = Aes.Create())
-            {
-                aes.Key = key;
-                aes.IV = iv;
-                aes.Mode = CipherMode.CBC;
-                aes.Padding = PaddingMode.PKCS7;
-
-                using (var decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
-                using (var ms = new MemoryStream(cipherText))
-                using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
-                using (var sr = new StreamReader(cs))
-                {
-                    plaintext = sr.ReadToEnd();
-                }
-            }
-
-            var parts = plaintext.Split('|');
-            if (parts.Length != 2)
-                return false;
-
-            if (!DateTime.TryParse(parts[0], null, DateTimeStyles.AdjustToUniversal, out var dateUtc))
-                return false;
-
-            if (!Guid.TryParse(parts[1], out profileId))
-                return false;
-
-            // Optionally, you could check dateUtc for expiration here
-            return true;
-        }
-        catch(Exception ex)
-        {
-            Console.WriteLine("ValidateToken: " + ex.Message);
-            return false;
-        }
-    }
-
-    private Guid? ValidateAuthorization()
-    {
-        // 1) Look for an Authorization header
-        if (!Request.Headers.TryGetValue("Authorization", out var authHeader))
-            return null;
-
-        // 2) The header is usually in the form "Bearer <token>"
-        var headerValue = authHeader.ToString();
-        if (!headerValue.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        var token = headerValue.Substring("Bearer ".Length).Trim();
-        if (!ValidateToken(token, out Guid profileId))
-            return null;
-        
-        return profileId;
-    }
-
-    private string BuildToken(Guid profileId)
-    {
-        // Combine current UTC timestamp and profileId
-        var dateUtc = DateTime.UtcNow.ToString("o");
-        var plaintext = $"{dateUtc}|{profileId}";
-
-        // Convert the encryption key and use a zero IV
-        var key = Encoding.UTF8.GetBytes(_encryptionKey);
-        var iv = new byte[16];
-
-        byte[] cipherBytes;
-        using (var aes = Aes.Create())
-        {
-            aes.Key = key;
-            aes.IV = iv;
-            aes.Mode = CipherMode.CBC;
-            aes.Padding = PaddingMode.PKCS7;
-
-            using (var encryptor = aes.CreateEncryptor(aes.Key, aes.IV))
-            using (var ms = new MemoryStream())
-            using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
-            using (var sw = new StreamWriter(cs))
-            {
-                sw.Write(plaintext);
-                sw.Flush();
-                cs.FlushFinalBlock();
-                cipherBytes = ms.ToArray();
-            }
-        }
-
-        return Convert.ToBase64String(cipherBytes);
-    }
+    private Guid? ValidateAuthorization() => AuthTokens.GetProfileId(Request);
 
     [HttpPost]
     [Route("profile/login/{email}")]
@@ -156,7 +39,7 @@ public class ProfileController : ControllerBase
         {
             StatusCode = 200,
             ContentType = "text/html",
-            Content = BuildToken(p.Id)
+            Content = AuthTokens.BuildToken(p.Id)
         };
     }
 

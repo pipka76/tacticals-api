@@ -36,6 +36,9 @@ public class GameServerOptions
     /// <summary>Hard cap on an instance's lifetime; a hung or forgotten server is killed after this.</summary>
     public int MaxLifetimeMinutes { get; set; } = 120;
 
+    /// <summary>How long a join ticket stays valid after the API hands it to a player.</summary>
+    public int TicketLifetimeSeconds { get; set; } = 60;
+
     /// <summary>How often the lifetime watchdog runs.</summary>
     public int WatchdogIntervalSeconds { get; set; } = 30;
 }

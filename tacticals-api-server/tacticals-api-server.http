@@ -1,25 +1,48 @@
 @host = http://localhost:5258
 
-### Register a battle -> copy "id" into @battleId
-PUT {{host}}/battle/register?name=test1
+### Create a profile (PasswordHash carries the plain password; the API hashes it)
+POST {{host}}/profile/create
+Content-Type: application/json
+
+{ "Name": "Alice", "Email": "alice@example.com", "PasswordHash": "secret" }
+
+### Log in -> response body is the token; paste it into @token
+POST {{host}}/profile/login/alice@example.com
+Content-Type: application/json
+
+"secret"
 
 ###
+@token = paste-token-here
 @battleId = 00000000-0000-0000-0000-000000000000
 
-### Claim ownership (peerId stands in for the owner until profile auth is wired in)
-PUT {{host}}/battle/authorize?id={{battleId}}&ownerPeer=1
+### Register a battle (caller becomes owner and first player) -> copy "id" into @battleId
+PUT {{host}}/battle/register?name=test1
+Authorization: Bearer {{token}}
 
-### Owner starts the battle: launches the game server, returns { id, host, port }
-PUT {{host}}/battle/start?id={{battleId}}&peerId=1
+### Other players join / leave (owner leaving disbands the battle)
+PUT {{host}}/battle/join?id={{battleId}}
+Authorization: Bearer {{token}}
 
-### Other players: where to connect (409 until started)
+###
+PUT {{host}}/battle/leave?id={{battleId}}
+Authorization: Bearer {{token}}
+
+### Every player marks ready
+PUT {{host}}/battle/playerready?id={{battleId}}&isReady=true
+Authorization: Bearer {{token}}
+
+### Owner starts: launches the game server, returns { id, host, port, ticket }
+PUT {{host}}/battle/start?id={{battleId}}
+Authorization: Bearer {{token}}
+
+### Other players: where to connect + their own one-time ticket (409 until started)
 GET {{host}}/battle/endpoint?id={{battleId}}
+Authorization: Bearer {{token}}
 
 ### Running game server processes and their ports
 GET {{host}}/battle/instances
 
-### Finish: removes the battle and stops its game server
-PUT {{host}}/battle/finish?id={{battleId}}&peerId=1
-Content-Type: application/json
-
-""
+### Owner aborts: removes the battle and stops its game server
+PUT {{host}}/battle/finish?id={{battleId}}
+Authorization: Bearer {{token}}

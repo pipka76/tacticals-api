@@ -19,6 +19,9 @@ public class GameInstance
     /// <summary>Secret handed to the game process; it presents it when reporting back to the API.</summary>
     internal string Token = string.Empty;
 
+    /// <summary>Outstanding join tickets: ticket -> who it was issued to. Guarded by the manager's lock.</summary>
+    internal readonly Dictionary<string, (TicketIdentity Identity, DateTime ExpiresUtc)> Tickets = new();
+
     /// <summary>Completes true when the ready marker was printed, false if the process died first.</summary>
     internal readonly TaskCompletionSource<bool> ReadySignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }

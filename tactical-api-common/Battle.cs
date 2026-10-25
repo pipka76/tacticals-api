@@ -4,7 +4,8 @@ public record Battle
 {
     public Guid ID { set; get; }
     public string Name { set; get; }
-    public int Owner { set; get; }
+    // Profile id of the player who registered the battle.
+    public Guid Owner { set; get; }
     public List<Peer> Peers { set; get; }
     public bool IsRunning { set; get; }
     public string MapName { set; get; }
@@ -15,7 +16,17 @@ public record Battle
 
 public record Peer
 {
-    public int Id { set; get; }
+    // Profile id; Name is the profile name.
+    public Guid Id { set; get; }
     public string Name { set; get; }
     public bool IsReady { set; get; }
 }
+
+/// <summary>
+/// Where a player connects for a running battle. Ticket is one-time and short-lived: the client
+/// sends it in the ENet auth handshake and the game server redeems it with the API.
+/// </summary>
+public record BattleEndpoint(Guid Id, string Host, int Port, string Ticket);
+
+/// <summary>Who a redeemed ticket belongs to.</summary>
+public record TicketIdentity(Guid ProfileId, string Name);
