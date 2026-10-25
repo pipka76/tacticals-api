@@ -5,18 +5,14 @@ namespace tacticals_api_server.Domain;
 public class BattleRegistry
 {
 	private static ConcurrentDictionary<Guid, Battle> _battles = new();
-	private const int MIN_PORT = 20000;
+	public const int MAX_PLAYERS = 4;
 	
-	public static Guid RegisterNewBattle(string name, string mapName, out int port)
+	public static Guid RegisterNewBattle(string name, string mapName)
 	{
-		port = -1;
 		if (_battles.Any(b => b.Value.Name.Equals(name, StringComparison.CurrentCultureIgnoreCase)))
 			return Guid.Empty;
 
-		var freePort = MIN_PORT;
-		if (_battles.Count > 0)
-			freePort = _battles.Max(b => b.Value.Port) + 1;
-
+		// Host/Port stay empty until the game server is started (see MarkRunning).
 		var b = new Battle()
 		{
 			ID = Guid.NewGuid(),
@@ -25,13 +21,12 @@ public class BattleRegistry
 			IsRunning = false,
 			MapName = mapName,
 			Peers = new List<Peer>(),
-			Port = freePort
+			Port = 0
 		};
 
 		if (!_battles.TryAdd(b.ID, b))
 			return Guid.Empty;
 
-		port = freePort;
 		return b.ID;
 	}
 
@@ -57,8 +52,13 @@ public class BattleRegistry
 		if(battle.IsRunning)
 			return false;
 
-		if(!battle.Peers.Any(p => p.Id == peerId))
-			battle.Peers.Add(new Peer() { Id = peerId, IsReady = false });
+		if (battle.Peers.Any(p => p.Id == peerId))
+			return true;
+
+		if (battle.Peers.Count >= MAX_PLAYERS)
+			return false;
+
+		battle.Peers.Add(new Peer() { Id = peerId, IsReady = false });
 
 		return true;
 	}
@@ -103,19 +103,29 @@ public class BattleRegistry
 		return _battles.Values.ToList();
 	}
 
-	public static bool StartBattle(Guid battleId, int ownerId)
+	public static bool CanStartBattle(Guid battleId, int ownerId)
 	{
-		if (_battles.TryGetValue(battleId, out Battle battle))
-		{
-			if (battle.Owner != ownerId)
-				return false;
+		return _battles.TryGetValue(battleId, out Battle battle) && battle.Owner == ownerId;
+	}
 
-			battle.IsRunning = true;
+	/// <summary>
+	/// Records the public endpoint of the battle's game server. Returns false if the battle
+	/// disappeared while its server was starting.
+	/// </summary>
+	public static bool MarkRunning(Guid battleId, string host, int port)
+	{
+		if (!_battles.TryGetValue(battleId, out Battle battle))
+			return false;
 
-			return true;
-		}
+		battle.Host = host;
+		battle.Port = port;
+		battle.IsRunning = true;
+		return true;
+	}
 
-		return false;
+	public static void RemoveBattle(Guid battleId)
+	{
+		_battles.TryRemove(battleId, out _);
 	}
 
 	public static bool FinishBattle(Guid battleId, int ownerId)

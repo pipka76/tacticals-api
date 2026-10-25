@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using tacticals_api_server.Domain;
+using tacticals_api_server.Domain.GameServers;
 
 namespace tacticals_api_server.Controllers;
 
@@ -9,10 +10,12 @@ namespace tacticals_api_server.Controllers;
 public class BattleController : Controller
 {
     private ILogger<BattleController> _logger;
+    private GameServerManager _gameServers;
     
-    public BattleController(ILogger<BattleController> logger)
+    public BattleController(ILogger<BattleController> logger, GameServerManager gameServers)
     {
         _logger = logger;
+        _gameServers = gameServers;
     }
     
     [HttpPut]
@@ -21,7 +24,7 @@ public class BattleController : Controller
     {
         _logger.LogDebug($"RegisterNewBattle: {name}");
 
-        var battleId = BattleRegistry.RegisterNewBattle(name, string.Empty, out int port);
+        var battleId = BattleRegistry.RegisterNewBattle(name, string.Empty);
         if (battleId == Guid.Empty)
             return new ConflictResult();
 
@@ -29,7 +32,7 @@ public class BattleController : Controller
         {
             StatusCode = (int)HttpStatusCode.OK,
             ContentType = "application/json",
-            Content = "{" + $"\"id\": \"{battleId}\", \"port\": {port}" + "}"
+            Content = "{" + $"\"id\": \"{battleId}\"" + "}"
         };
     }
 
@@ -40,7 +43,7 @@ public class BattleController : Controller
         _logger.LogDebug($"AuthorizeBattle: {id} {ownerPeer}");
 
         if (!BattleRegistry.AuthorizeBattle(id, ownerPeer))
-            return new ForbidResult();
+            return StatusCode((int)HttpStatusCode.Forbidden);
 
         return Ok();
     }
@@ -52,7 +55,7 @@ public class BattleController : Controller
         _logger.LogDebug($"JoinBattle: {id} {peerId}");
 
         if(!BattleRegistry.JoinBattle(id, peerId))
-            return new ForbidResult();
+            return StatusCode((int)HttpStatusCode.Forbidden);
 
         return Ok();
     }
@@ -71,16 +74,56 @@ public class BattleController : Controller
         return Ok();
     }
     
+    /// <summary>
+    /// Launches the battle's dedicated game server and returns the endpoint players connect to.
+    /// Calling it again for a running battle returns the same endpoint.
+    /// </summary>
     [HttpPut]
     [Route("battle/start")]
-    public IActionResult StartBattle(Guid id, int peerId)
+    public async Task<IActionResult> StartBattle(Guid id, int peerId)
     {
         _logger.LogDebug($"StartBattle: {id} {peerId}");
 
-        if(!BattleRegistry.StartBattle(id, peerId))
-            return new ForbidResult();
+        if(!BattleRegistry.CanStartBattle(id, peerId))
+            return StatusCode((int)HttpStatusCode.Forbidden);
 
-        return Ok();
+        var instance = await _gameServers.StartAsync(id);
+        if (instance == null)
+            return StatusCode((int)HttpStatusCode.ServiceUnavailable);
+
+        if (!BattleRegistry.MarkRunning(id, instance.PublicHost, instance.Port))
+        {
+            // Battle was finished/removed while its server was starting.
+            _gameServers.Stop(id);
+            return NotFound();
+        }
+
+        return Ok(new BattleEndpoint(id, instance.PublicHost, instance.Port));
+    }
+
+    /// <summary>
+    /// Where to connect for a battle: 404 if unknown, 409 while it hasn't been started yet.
+    /// </summary>
+    [HttpGet]
+    [Route("battle/endpoint")]
+    public IActionResult GetEndpoint(Guid id)
+    {
+        var b = BattleRegistry.GetBattle(id);
+        if (b == null)
+            return NotFound();
+
+        if (!b.IsRunning)
+            return Conflict();
+
+        return Ok(new BattleEndpoint(b.ID, b.Host, b.Port));
+    }
+
+    /// <summary>Running game server processes and the ports mapped to them.</summary>
+    [HttpGet]
+    [Route("battle/instances")]
+    public IActionResult ListInstances()
+    {
+        return Ok(_gameServers.ListInstances());
     }
 
     [HttpPut]
@@ -90,8 +133,9 @@ public class BattleController : Controller
         _logger.LogDebug($"FinishBattle: {id} {peerId}");
 
         if(!BattleRegistry.FinishBattle(id, peerId))
-            return new ForbidResult();
+            return StatusCode((int)HttpStatusCode.Forbidden);
 
+        _gameServers.Stop(id);
         return Ok();
     }
     
@@ -127,3 +171,5 @@ public class BattleController : Controller
         };
     }
 }
+
+public record BattleEndpoint(Guid Id, string Host, int Port);

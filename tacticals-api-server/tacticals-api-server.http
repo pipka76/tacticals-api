@@ -1,6 +1,25 @@
-@tacticals_api_server_HostAddress = http://localhost:5258
+@host = http://localhost:5258
 
-GET {{tacticals_api_server_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register a battle -> copy "id" into @battleId
+PUT {{host}}/battle/register?name=test1
 
 ###
+@battleId = 00000000-0000-0000-0000-000000000000
+
+### Claim ownership (peerId stands in for the owner until profile auth is wired in)
+PUT {{host}}/battle/authorize?id={{battleId}}&ownerPeer=1
+
+### Owner starts the battle: launches the game server, returns { id, host, port }
+PUT {{host}}/battle/start?id={{battleId}}&peerId=1
+
+### Other players: where to connect (409 until started)
+GET {{host}}/battle/endpoint?id={{battleId}}
+
+### Running game server processes and their ports
+GET {{host}}/battle/instances
+
+### Finish: removes the battle and stops its game server
+PUT {{host}}/battle/finish?id={{battleId}}&peerId=1
+Content-Type: application/json
+
+""

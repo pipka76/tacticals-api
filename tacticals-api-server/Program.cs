@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using tacticals_api_server.Domain.Database;
+using tacticals_api_server.Domain.GameServers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMvc();
 builder.Services.AddDbContext<ApiDatabaseContext>(options =>
     options.UseSqlite("Data Source=tacticals.db"));
+builder.Services.Configure<GameServerOptions>(builder.Configuration.GetSection(GameServerOptions.Section));
+builder.Services.AddSingleton<GameServerManager>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<GameServerManager>());
 
 var app = builder.Build();
 

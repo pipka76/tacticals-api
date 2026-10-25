@@ -8,6 +8,8 @@ public record Battle
     public List<Peer> Peers { set; get; }
     public bool IsRunning { set; get; }
     public string MapName { set; get; }
+    // Public endpoint of the battle's game server; set once the battle is running.
+    public string Host { set; get; }
     public int Port { set; get; }
 }
 
