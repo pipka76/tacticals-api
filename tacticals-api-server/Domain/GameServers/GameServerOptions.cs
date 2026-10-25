@@ -29,4 +29,13 @@ public class GameServerOptions
 
     /// <summary>Line the game prints to stdout once its ENet server listens.</summary>
     public string ReadyMarker { get; set; } = "Server Started!";
+
+    /// <summary>Base URL the game process uses to call back into this API (results, finish).</summary>
+    public string ApiCallbackUrl { get; set; } = "http://127.0.0.1:5000/";
+
+    /// <summary>Hard cap on an instance's lifetime; a hung or forgotten server is killed after this.</summary>
+    public int MaxLifetimeMinutes { get; set; } = 120;
+
+    /// <summary>How often the lifetime watchdog runs.</summary>
+    public int WatchdogIntervalSeconds { get; set; } = 30;
 }

@@ -16,6 +16,9 @@ public class GameInstance
 
     internal Process? Process;
 
+    /// <summary>Secret handed to the game process; it presents it when reporting back to the API.</summary>
+    internal string Token = string.Empty;
+
     /// <summary>Completes true when the ready marker was printed, false if the process died first.</summary>
     internal readonly TaskCompletionSource<bool> ReadySignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }

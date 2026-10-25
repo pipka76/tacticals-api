@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Options;
 
 namespace tacticals_api_server.Domain.GameServers;
@@ -16,6 +18,8 @@ public class GameServerManager : IHostedService
     private readonly string _workingDirectory;
     private readonly object _lock = new();
     private readonly Dictionary<Guid, GameInstance> _instances = new();
+    private readonly CancellationTokenSource _watchdogCts = new();
+    private Task? _watchdog;
 
     public GameServerManager(ILogger<GameServerManager> logger, IOptions<GameServerOptions> options, IHostEnvironment env)
     {
@@ -73,6 +77,19 @@ public class GameServerManager : IHostedService
         Kill(instance);
     }
 
+    /// <summary>True if the token is the one handed to the battle's game server process.</summary>
+    public bool IsServerToken(Guid battleId, string token)
+    {
+        GameInstance? instance;
+        lock (_lock)
+        {
+            if (!_instances.TryGetValue(battleId, out instance))
+                return false;
+        }
+
+        return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(instance.Token), Encoding.UTF8.GetBytes(token));
+    }
+
     public IList<GameInstance> ListInstances()
     {
         lock (_lock)
@@ -81,10 +98,18 @@ public class GameServerManager : IHostedService
         }
     }
 
-    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    public Task StopAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
+        _watchdog = RunWatchdogAsync(_watchdogCts.Token);
+        return Task.CompletedTask;
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _watchdogCts.Cancel();
+        if (_watchdog != null)
+            await _watchdog;
+
         // Don't leave orphaned game servers behind when the API shuts down.
         List<GameInstance> all;
         lock (_lock)
@@ -95,8 +120,33 @@ public class GameServerManager : IHostedService
 
         foreach (var instance in all)
             Kill(instance);
+    }
 
-        return Task.CompletedTask;
+    /// <summary>
+    /// Kills instances that outlived MaxLifetimeMinutes. The process exiting is the normal end of a
+    /// battle, but a hung server never exits, so this is the backstop that frees its port.
+    /// </summary>
+    private async Task RunWatchdogAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(_options.WatchdogIntervalSeconds));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(ct))
+            {
+                var deadline = DateTime.UtcNow - TimeSpan.FromMinutes(_options.MaxLifetimeMinutes);
+                foreach (var instance in ListInstances().Where(i => i.StartedUtc < deadline))
+                {
+                    _logger.LogWarning("Game server for battle {BattleId} on port {Port} exceeded {Minutes} min lifetime, killing it",
+                        instance.BattleId, instance.Port, _options.MaxLifetimeMinutes);
+                    Stop(instance.BattleId);
+                    BattleRegistry.RemoveBattle(instance.BattleId);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // API shutting down.
+        }
     }
 
     private GameInstance? Launch(Guid battleId, int port)
@@ -106,7 +156,8 @@ public class GameServerManager : IHostedService
             BattleId = battleId,
             Port = port,
             PublicHost = _options.PublicHost,
-            StartedUtc = DateTime.UtcNow
+            StartedUtc = DateTime.UtcNow,
+            Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
         };
 
         var args = _options.Arguments
@@ -120,7 +171,13 @@ public class GameServerManager : IHostedService
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                WorkingDirectory = _workingDirectory
+                WorkingDirectory = _workingDirectory,
+                // Passed via environment rather than arguments so the token doesn't show up in `ps`.
+                Environment =
+                {
+                    [GameServerExit.ApiUrlEnv] = _options.ApiCallbackUrl,
+                    [GameServerExit.ServerTokenEnv] = instance.Token
+                }
             },
             EnableRaisingEvents = true
         };
@@ -174,8 +231,15 @@ public class GameServerManager : IHostedService
         }
 
         instance.ReadySignal.TrySetResult(false);
-        _logger.LogInformation("Game server for battle {BattleId} on port {Port} exited with code {Code}",
-            instance.BattleId, instance.Port, instance.Process?.ExitCode);
+
+        // Exited can fire before the redirected stdout/stderr are drained; this flushes the last log lines.
+        instance.Process?.WaitForExit();
+        var exitCode = instance.Process?.ExitCode ?? -1;
+        var level = exitCode is GameServerExit.Finished or GameServerExit.Abandoned or GameServerExit.NoPlayers
+            ? LogLevel.Information
+            : LogLevel.Warning;
+        _logger.Log(level, "Game server for battle {BattleId} on port {Port} exited with code {Code} ({Reason})",
+            instance.BattleId, instance.Port, exitCode, GameServerExit.Describe(exitCode));
 
         // A server that was running and exited on its own means the battle is over (or crashed).
         // A server that never got ready leaves the battle in the lobby so the owner can retry.

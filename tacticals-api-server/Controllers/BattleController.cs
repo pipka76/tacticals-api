@@ -139,6 +139,26 @@ public class BattleController : Controller
         return Ok();
     }
     
+    /// <summary>
+    /// Called by the dedicated game server (not by players) when the battle is decided, right
+    /// before it quits. Authenticated with the per-instance token from its environment.
+    /// </summary>
+    [HttpPut]
+    [Route("battle/server/finish")]
+    public IActionResult ServerFinishBattle([FromQuery] Guid id, [FromBody] string statistics)
+    {
+        var auth = Request.Headers.Authorization.ToString();
+        if (!auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            || !_gameServers.IsServerToken(id, auth.Substring("Bearer ".Length).Trim()))
+            return Unauthorized();
+
+        _logger.LogInformation($"ServerFinishBattle: {id} {statistics}");
+
+        // The process exits on its own right after this; its Exited handler releases the port.
+        BattleRegistry.RemoveBattle(id);
+        return Ok();
+    }
+
     [HttpGet]
     [Route("battle/get")]
     public IActionResult GetBattle(Guid id)
