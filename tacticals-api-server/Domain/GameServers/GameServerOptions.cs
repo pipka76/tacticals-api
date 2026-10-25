@@ -18,7 +18,7 @@ public class GameServerOptions
     public string WorkingDirectory { get; set; } = ".";
 
     /// <summary>Host name / IP clients use to reach game instances.</summary>
-    public string PublicHost { get; set; } = "127.0.0.1";
+    public string PublicHost { get; set; } = "172.33.1.133";
 
     /// <summary>Inclusive UDP port range handed out to game instances.</summary>
     public int MinPort { get; set; } = 20000;
@@ -31,7 +31,7 @@ public class GameServerOptions
     public string ReadyMarker { get; set; } = "Server Started!";
 
     /// <summary>Base URL the game process uses to call back into this API (results, finish).</summary>
-    public string ApiCallbackUrl { get; set; } = "http://127.0.0.1:5000/";
+    public string ApiCallbackUrl { get; set; } = "http://172.33.1.133:6000/";
 
     /// <summary>Hard cap on an instance's lifetime; a hung or forgotten server is killed after this.</summary>
     public int MaxLifetimeMinutes { get; set; } = 120;
